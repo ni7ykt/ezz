@@ -1,62 +1,132 @@
 
-
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>_xingchen1 | Loading...</title>
+    <title>Lighting Moon | Loading...</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 
     <style>
-        /* --- 全局設置 --- */
+        /* --- 1. 全局設定與自定義游標 --- */
         :root {
-            --bg-color: #050505;
-            --card-bg: rgba(10, 10, 10, 0.65);
-            --glass-border: rgba(255, 255, 255, 0.06);
-            --discord-color: #5865F2;
-            --tooltip-bg: rgba(0, 0, 0, 0.95);
+            --primary-color: #ffffff;
+            --glass-bg: rgba(15, 15, 15, 0.65);
+            --glass-border: rgba(255, 255, 255, 0.08);
         }
 
         body {
             margin: 0;
             padding: 0;
-            background-color: var(--bg-color);
+            background-color: #050505;
             color: white;
             font-family: 'Poppins', sans-serif;
             overflow: hidden;
+            /* 禁止滾動 */
             height: 100vh;
-            user-select: none;
             cursor: crosshair;
+            /* 十字準心游標 */
         }
 
-        /* --- 背景特效 --- */
-        #bg-video {
+        /* --- 2. 背景影片/圖片 --- */
+        /* --- 0. Custom Cursor & Boot --- */
+        #boot-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #000;
+            z-index: 10000;
+            padding: 2rem;
+            box-sizing: border-box;
+            font-family: 'Courier New', monospace;
+            color: #0f0;
+            overflow: hidden;
+            display: none;
+            /* Shown on click */
+            pointer-events: none;
+        }
+
+        .terminal-line {
+            display: block;
+            margin-bottom: 2px;
+            text-shadow: 0 0 5px #0f0;
+            opacity: 0;
+            animation: fadeIn 0.1s forwards;
+        }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+            }
+        }
+
+        /* Scanline / CRT Effect */
+        .scanlines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom,
+                    rgba(255, 255, 255, 0),
+                    rgba(255, 255, 255, 0) 50%,
+                    rgba(0, 0, 0, 0.1) 50%,
+                    rgba(0, 0, 0, 0.1));
+            background-size: 100% 4px;
+            z-index: 20000;
+            pointer-events: none;
+            opacity: 0.6;
+            mix-blend-mode: overlay;
+        }
+
+        /* Cursor Ring */
+        .cursor-ring {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 40px;
+            height: 40px;
+            border: 1px dashed rgba(0, 255, 255, 0.4);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 20001;
+            transform: translate(-50%, -50%);
+            transition: width 0.15s, height 0.15s, border-color 0.15s;
+            animation: rotate-cursor 8s linear infinite;
+        }
+
+        .cursor-ring.active {
+            width: 30px;
+            height: 30px;
+            border-color: rgba(255, 0, 100, 0.8);
+            border-style: solid;
+        }
+
+        @keyframes rotate-cursor {
+            to {
+                transform: translate(-50%, -50%) rotate(360deg);
+            }
+        }
+
+        /* --- 2. 背景影片/圖片 --- */
+        #bg-media {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             object-fit: cover;
-            z-index: -3;
-            filter: brightness(0.35) contrast(1.1);
-            transition: filter 1s ease;
-        }
-
-        #scanlines {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0) 50%, rgba(0, 0, 0, 0.2) 50%, rgba(0, 0, 0, 0.2));
-            background-size: 100% 4px;
             z-index: -2;
-            pointer-events: none;
+            filter: brightness(0.3) blur(0px);
+            /* 進入後無模糊 */
+            transition: filter 0.8s ease;
         }
 
+        /* --- 3. 粒子特效畫布 (雪花) --- */
         #canvas-overlay {
             position: fixed;
             top: 0;
@@ -67,7 +137,7 @@
             pointer-events: none;
         }
 
-        /* --- 點擊進入 --- */
+        /* --- 4. Click to Enter 遮罩 --- */
         #enter-overlay {
             position: fixed;
             top: 0;
@@ -80,739 +150,1113 @@
             justify-content: center;
             align-items: center;
             cursor: pointer;
-            transition: opacity 0.8s ease, visibility 0.8s;
+            transition: opacity 1s ease, visibility 1s;
         }
 
         .enter-text {
             font-size: 1.5rem;
-            font-weight: 600;
-            letter-spacing: 2px;
-            animation: textGlow 2s infinite ease-in-out;
+            font-weight: 700;
+            text-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
+            animation: glow 2s infinite ease-in-out;
         }
 
-        @keyframes textGlow {
+        @keyframes glow {
 
             0%,
             100% {
-                text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
-                opacity: 0.8;
+                opacity: 0.5;
+                text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
             }
 
             50% {
-                text-shadow: 0 0 25px rgba(255, 255, 255, 0.9);
                 opacity: 1;
+                text-shadow: 0 0 20px rgba(255, 255, 255, 1);
             }
         }
 
-        /* --- 3D 卡片容器 --- */
-        #card-container {
+        /* --- 5. 主內容卡片 (Guns.lol 風格) --- */
+        #main-card {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            width: 90%;
+            max-width: 400px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 40px 20px;
+            text-align: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.8s ease, visibility 0.8s;
+            /* Removed transform from transition for smoother 3D tilt */
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+            perspective: 1000px;
+            transform-style: preserve-3d;
+        }
+
+        .avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            /* margin-bottom removed for alignment */
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+            transition: transform 0.5s;
+        }
+
+        .avatar:hover {
+            transform: rotate(360deg);
+        }
+
+        .username {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
+            /* 模擬高級會員的鑽石/發光名字效果 */
+            background: linear-gradient(90deg, #fff, #b3b3b3, #fff);
+            background-size: 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: gradient-anim 3s infinite linear;
+            position: relative;
+            display: inline-block;
+        }
+
+        @keyframes gradient-anim {
+            0% {
+                background-position: 0%;
+            }
+
+            100% {
+                background-position: 200%;
+            }
+        }
+
+
+        /* --- Glitch Effect --- */
+        .glitch {
+            position: relative;
+        }
+
+        .glitch::before,
+        .glitch::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #050505;
+            /* Consistent with bg */
+            overflow: hidden;
+            clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+        }
+
+        .glitch::before {
+            left: 2px;
+            text-shadow: -1px 0 #ff00c1;
+            animation: glitch-anim-1 2s infinite linear alternate-reverse;
+        }
+
+        .glitch::after {
+            left: -2px;
+            text-shadow: -1px 0 #00fff9;
+            animation: glitch-anim-2 3s infinite linear alternate-reverse;
+        }
+
+        @keyframes glitch-anim-1 {
+            0% {
+                clip-path: inset(20% 0 80% 0);
+                transform: translate(-2px, 1px);
+            }
+
+            20% {
+                clip-path: inset(60% 0 10% 0);
+                transform: translate(2px, -1px);
+            }
+
+            40% {
+                clip-path: inset(40% 0 50% 0);
+                transform: translate(-2px, 2px);
+            }
+
+            60% {
+                clip-path: inset(80% 0 5% 0);
+                transform: translate(2px, -2px);
+            }
+
+            80% {
+                clip-path: inset(10% 0 70% 0);
+                transform: translate(-1px, 1px);
+            }
+
+            100% {
+                clip-path: inset(30% 0 50% 0);
+                transform: translate(1px, -1px);
+            }
+        }
+
+        @keyframes glitch-anim-2 {
+            0% {
+                clip-path: inset(10% 0 60% 0);
+                transform: translate(2px, -1px);
+            }
+
+            20% {
+                clip-path: inset(80% 0 5% 0);
+                transform: translate(-2px, 1px);
+            }
+
+            40% {
+                clip-path: inset(30% 0 20% 0);
+                transform: translate(2px, 2px);
+            }
+
+            60% {
+                clip-path: inset(10% 0 80% 0);
+                transform: translate(-2px, -2px);
+            }
+
+            80% {
+                clip-path: inset(40% 0 10% 0);
+                transform: translate(1px, 1px);
+            }
+
+            100% {
+                clip-path: inset(50% 0 30% 0);
+                transform: translate(-1px, -1px);
+            }
+        }
+
+        .badges {
+            margin-bottom: 5px;
+            font-size: 1rem;
+            color: #ddd;
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+        }
+
+        .uid {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 15px;
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+            font-family: monospace;
+        }
+
+        .badges i {
+            margin: 0 3px;
+            cursor: help;
+        }
+
+        .bio-box {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 10px;
+            margin: 15px 0;
+            min-height: 24px;
+            font-size: 0.9rem;
+            color: #ccc;
+            font-family: 'Courier New', monospace;
+            /* 打字機字體 */
+        }
+
+        /* --- 社交按鈕 --- */
+        .links {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .link-item {
+            display: block;
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            text-decoration: none;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s;
+            font-weight: 600;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .link-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: scale(1.02) rotateY(10deg);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.4);
+            text-shadow: 0 0 10px rgba(255, 255, 255, 1);
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* 按钮点击粒子效果 */
+        .link-item:active {
+            transform: scale(0.98);
+        }
+
+        .particle {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 100;
+            animation: particle-fade 1s ease-out forwards;
+        }
+
+        @keyframes particle-fade {
+            0% {
+                transform: translate(0, 0);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translate(var(--tx), var(--ty));
+                opacity: 0;
+            }
+        }
+
+        /* --- 底部資訊 --- */
+        .footer {
+            margin-top: 25px;
+            font-size: 0.7rem;
+            color: #666;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        /* 隱藏原生播放器 */
+        audio {
+            display: none;
+        }
+
+        .cursor-trail {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: cyan;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999;
+            box-shadow: 0 0 10px cyan, 0 0 20px cyan;
+        }
+
+        /* --- 6. Avatar Magic Circle (Enhanced) --- */
+        .avatar-container {
+            position: relative;
+            display: inline-block;
+            margin-bottom: 40px;
+            /* Increased to compensate for removed avatar margin */
+        }
+
+        .magic-ring {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            perspective: 1200px;
-            z-index: 10;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 1s ease 0.5s, visibility 1s;
-        }
-
-        #profile-card {
-            width: 420px;
-            background: var(--card-bg);
-            backdrop-filter: blur(20px) saturate(160%);
-            -webkit-backdrop-filter: blur(20px) saturate(160%);
-            border: 1px solid var(--glass-border);
-            border-radius: 18px;
-            padding: 45px 30px;
-            text-align: center;
-            box-shadow: 0 0 60px rgba(0, 0, 0, 0.7), inset 0 0 0 1px rgba(255, 255, 255, 0.03);
-            transform-style: preserve-3d;
-        }
-
-        /* --- 內容元素 --- */
-        .avatar-container {
-            position: relative;
-            width: 115px;
-            height: 115px;
-            margin: 0 auto 15px;
-            transform: translateZ(40px);
-        }
-
-        .avatar {
-            width: 100%;
-            height: 100%;
             border-radius: 50%;
-            object-fit: cover;
-            box-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
-            transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
-        }
-
-        .avatar:hover {
-            transform: scale(1.05) rotate(5deg);
-        }
-
-        .username {
-            font-size: 2rem;
-            font-weight: 700;
-            color: #fff;
-            margin-bottom: 2px;
-            text-shadow: 0 0 20px rgba(255, 255, 255, 0.4);
-            transform: translateZ(30px);
-            letter-spacing: 1px;
-        }
-
-        .uid {
-            font-size: 0.8rem;
-            color: rgba(255, 255, 255, 0.4);
-            font-family: 'Courier New', monospace;
-            margin-bottom: 12px;
-            transform: translateZ(25px);
-        }
-
-        /* --- Guns.lol 風格徽章 (Badges) --- */
-        .badges-wrapper {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 10px;
-            margin: 15px 0 20px 0;
-            transform: translateZ(35px);
-            padding: 0 10px;
-        }
-
-        .badge {
-            position: relative;
-            width: 24px;
-            height: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: help;
-            transition: transform 0.2s;
-        }
-
-        .badge img,
-        .badge svg {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.3));
-        }
-
-        .badge:hover {
-            transform: scale(1.15);
-        }
-
-        /* Tooltip */
-        .badge::after {
-            content: attr(data-tooltip);
-            position: absolute;
-            bottom: 125%;
-            left: 50%;
-            transform: translateX(-50%) translateY(5px);
-            background: var(--tooltip-bg);
-            color: white;
-            padding: 5px 10px;
-            border-radius: 6px;
-            font-size: 0.75rem;
-            font-weight: 500;
-            white-space: nowrap;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.2s ease;
             pointer-events: none;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
-            z-index: 100;
+            z-index: -1;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.1);
         }
 
-        .badge:hover::after {
-            opacity: 1;
-            visibility: visible;
-            transform: translateX(-50%) translateY(0);
+        /* Outer Runes/Dashed Ring */
+        .ring-1 {
+            width: 170px;
+            height: 170px;
+            border: 1px dashed rgba(0, 255, 255, 0.4);
+            animation: rotate-right 20s linear infinite;
         }
 
-        /* --- Bio --- */
-        .bio-box {
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 8px;
-            padding: 10px;
-            margin: 15px 0 25px 0;
-            min-height: 24px;
-            font-size: 0.9rem;
-            color: #e0e0e0;
-            font-family: 'Courier New', monospace;
-            transform: translateZ(30px);
-            text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+        /* Inner Hexagon/Tech Ring */
+        .ring-2 {
+            width: 150px;
+            height: 150px;
+            border: 2px solid transparent;
+            border-top: 2px solid rgba(255, 0, 150, 0.6);
+            border-bottom: 2px solid rgba(255, 0, 150, 0.6);
+            animation: rotate-left 12s linear infinite;
         }
 
-        /* --- Discord Widget (顯示總人數) --- */
-        .discord-widget {
-            background: rgba(30, 30, 30, 0.4);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 12px;
-            padding: 12px;
-            display: flex;
-            align-items: center;
-            margin-bottom: 25px;
-            text-decoration: none;
-            transform: translateZ(35px);
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .discord-widget:hover {
-            background: rgba(88, 101, 242, 0.15);
-            border-color: rgba(88, 101, 242, 0.5);
-            transform: translateZ(45px) scale(1.02);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-        }
-
-        .discord-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: 12px;
-            margin-right: 15px;
-            overflow: hidden;
-            background: #2b2d31;
-            flex-shrink: 0;
-        }
-
-        .discord-icon img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .discord-info {
-            text-align: left;
-            flex-grow: 1;
-        }
-
-        .discord-name {
-            display: block;
-            font-weight: 600;
-            font-size: 0.95rem;
-            color: white;
-            margin-bottom: 3px;
-        }
-
-        .discord-status {
-            font-size: 0.7rem;
-            color: #aaa;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            /* Online 與 Total 的間距 */
-        }
-
-        .status-item {
-            display: flex;
-            align-items: center;
-        }
-
-        .status-dot {
-            width: 6px;
-            height: 6px;
-            background-color: #23a559;
+        .ring-2::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             border-radius: 50%;
-            margin-right: 5px;
-            box-shadow: 0 0 6px #23a559;
+            border: 2px solid transparent;
+            border-left: 2px solid rgba(0, 255, 255, 0.6);
+            border-right: 2px solid rgba(0, 255, 255, 0.6);
+            transform: rotate(90deg);
         }
 
-        .status-dot.gray {
-            background-color: #747f8d;
-            box-shadow: none;
+        /* Pulsing Core Ring */
+        .ring-3 {
+            width: 130px;
+            height: 130px;
+            border: 1px dotted rgba(255, 255, 255, 0.3);
+            animation: pulse-ring 2s ease-in-out infinite alternate, rotate-right 30s linear infinite;
         }
 
-        .join-btn {
-            background: var(--discord-color);
-            color: white;
-            font-size: 0.75rem;
-            font-weight: 600;
-            padding: 7px 16px;
-            border-radius: 6px;
-            transition: all 0.2s;
-        }
-
-        /* --- Social Grid --- */
-        .social-grid {
-            display: grid;
-            grid-template-columns: repeat(6, 1fr);
-            gap: 10px;
-            transform: translateZ(35px);
-            margin-bottom: 25px;
-        }
-
-        .social-btn {
-            width: 45px;
-            height: 45px;
-            border-radius: 12px;
-            background: rgba(255, 255, 255, 0.03);
+        /* Complex Decorative Ring */
+        .ring-4 {
+            width: 190px;
+            height: 190px;
             border: 1px solid rgba(255, 255, 255, 0.05);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: rgba(255, 255, 255, 0.7);
-            text-decoration: none;
-            font-size: 1.3rem;
-            transition: all 0.3s;
+            animation: rotate-left 40s linear infinite;
         }
 
-        .social-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
-            border-color: rgba(255, 255, 255, 0.3);
-            transform: translateY(-5px);
-            color: white;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
-        }
-
-        /* Social Hover Colors */
-        .social-btn:hover .fa-youtube {
-            color: #ff0000;
-        }
-
-        .social-btn:hover .fa-github {
-            color: #fff;
-        }
-
-        .social-btn:hover .fa-steam {
-            color: #66c0f4;
-        }
-
-        .social-btn:hover .fa-tiktok {
-            color: #ff0050;
-            text-shadow: 2px 2px 0px #00f2ea;
-        }
-
-        .social-btn:hover .fa-spotify {
-            color: #1DB954;
-        }
-
-        .social-btn:hover svg {
-            fill: #fff;
-        }
-
-        /* Roblox */
-
-        /* Volume */
-        .volume-control {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            color: rgba(255, 255, 255, 0.4);
-            transform: translateZ(20px);
-            font-size: 0.85rem;
-        }
-
-        input[type="range"] {
-            -webkit-appearance: none;
-            width: 120px;
-            height: 4px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 2px;
-            outline: none;
-        }
-
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
+        .ring-4::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: -5px;
             width: 10px;
             height: 10px;
-            background: #fff;
+            background: rgba(0, 255, 255, 0.5);
             border-radius: 50%;
-            cursor: pointer;
-            transition: transform 0.2s;
+            box-shadow: 0 0 10px cyan;
         }
 
-        input[type="range"]::-webkit-slider-thumb:hover {
-            transform: scale(1.5);
+        @keyframes rotate-right {
+            to {
+                transform: translate(-50%, -50%) rotate(360deg);
+            }
         }
 
-        .footer {
-            margin-top: 30px;
+        @keyframes rotate-left {
+            to {
+                transform: translate(-50%, -50%) rotate(-360deg);
+            }
+        }
+
+        @keyframes pulse-ring {
+            0% {
+                transform: translate(-50%, -50%) scale(0.95);
+                opacity: 0.3;
+                border-color: rgba(255, 255, 255, 0.1);
+            }
+
+            100% {
+                transform: translate(-50%, -50%) scale(1.05);
+                opacity: 0.7;
+                border-color: rgba(0, 255, 255, 0.5);
+            }
+        }
+
+        /* --- 7. HUD / Tech Elements --- */
+        .hud-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 10;
+        }
+
+        .hud-item {
+            position: absolute;
+            font-family: 'Courier New', monospace;
             font-size: 0.7rem;
-            color: rgba(255, 255, 255, 0.2);
-            transform: translateZ(10px);
+            color: rgba(0, 255, 255, 0.5);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .hud-tl {
+            top: 20px;
+            left: 20px;
+            text-align: left;
+        }
+
+        .hud-tr {
+            top: 20px;
+            right: 20px;
+            text-align: right;
+        }
+
+        .hud-bl {
+            bottom: 20px;
+            left: 20px;
+            text-align: left;
+        }
+
+        .hud-br {
+            bottom: 20px;
+            right: 20px;
+            text-align: right;
+        }
+
+        .hud-line {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .scan-line {
+            width: 100%;
+            height: 2px;
+            background: rgba(0, 255, 255, 0.2);
+            position: absolute;
+            top: 0;
+            left: 0;
+            animation: scan 3s linear infinite;
+            opacity: 0.5;
+        }
+
+        @keyframes scan {
+            0% {
+                top: 0%;
+                opacity: 0;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+
+            100% {
+                top: 100%;
+                opacity: 0;
+            }
+        }
+
+        /* --- Scramble Effect Helper --- */
+        .scramble-highlight {
+            color: #0ff;
+            text-shadow: 0 0 5px #0ff;
+        }
+
+        /* --- 8. Magic Circle Click Effect --- */
+        .click-magic-ring {
+            position: fixed;
+            pointer-events: none;
+            border-radius: 50%;
+            border: 2px solid rgba(0, 255, 255, 0.8);
+            box-shadow: 0 0 15px cyan, inset 0 0 15px cyan;
+            z-index: 9998;
+            animation: magic-expand 0.8s ease-out forwards;
+        }
+
+        .click-magic-ring::before,
+        .click-magic-ring::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: 50%;
+            border: 1px dashed rgba(255, 0, 255, 0.5);
+        }
+
+        .click-magic-ring::before {
+            animation: rotate-right 0.8s linear;
+        }
+
+        .click-magic-ring::after {
+            animation: rotate-left 0.8s linear;
+        }
+
+        @keyframes magic-expand {
+            0% {
+                width: 0;
+                height: 0;
+                opacity: 1;
+                transform: translate(-50%, -50%) rotate(0deg);
+            }
+
+            100% {
+                width: 300px;
+                height: 300px;
+                opacity: 0;
+                transform: translate(-50%, -50%) rotate(45deg);
+            }
+        }
+
+        /* --- 9. Pseudo Audio Visualizer --- */
+        .visualizer-container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            gap: 3px;
+            height: 30px;
+            margin-top: 15px;
+        }
+
+        .viz-bar {
+            width: 4px;
+            background: cyan;
+            box-shadow: 0 0 5px cyan;
+            animation: viz-bounce 0.5s infinite ease-in-out alternate;
+        }
+
+        .viz-bar:nth-child(odd) {
+            animation-duration: 0.4s;
+            background: #ff00ff;
+            box-shadow: 0 0 5px #ff00ff;
+        }
+
+        .viz-bar:nth-child(2n) {
+            animation-duration: 0.6s;
+        }
+
+        .viz-bar:nth-child(3n) {
+            animation-duration: 0.3s;
+        }
+
+        @keyframes viz-bounce {
+            0% {
+                height: 5px;
+                opacity: 0.5;
+            }
+
+            100% {
+                height: 100%;
+                opacity: 1;
+            }
+        }
+
+        /* --- 10. Global Screen Glitch (Subtle) --- */
+        @keyframes screen-twitch {
+            0% {
+                transform: translate(0, 0);
+                filter: brightness(1);
+            }
+
+            95% {
+                transform: translate(0, 0);
+                filter: brightness(1);
+            }
+
+            96% {
+                transform: translate(-2px, 1px);
+                filter: hue-rotate(90deg) brightness(1.2);
+            }
+
+            97% {
+                transform: translate(2px, -1px);
+                filter: invert(0.1);
+            }
+
+            98% {
+                transform: translate(0, 2px);
+                filter: brightness(1);
+            }
+
+            100% {
+                transform: translate(0, 0);
+            }
+        }
+
+        /* Apply to body or a wrapper if preferred. Using body for max effect */
+        body {
+            animation: screen-twitch 10s infinite;
+        }
+
+        /* --- 11. New Animation Additions (Chuunibyou) --- */
+
+        /* System Warning Overlay */
+        .system-warning-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 0, 0, 0.1);
+            z-index: 15000;
+            pointer-events: none;
+            opacity: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            mix-blend-mode: overlay;
+        }
+
+        .warning-text {
+            font-size: 5rem;
+            color: red;
+            font-weight: 900;
+            border: 10px solid red;
+            padding: 20px 40px;
+            text-transform: uppercase;
+            letter-spacing: 10px;
+            transform: rotate(-10deg);
+            opacity: 0;
+            text-shadow: 0 0 20px red;
+            box-shadow: 0 0 50px red, inset 0 0 50px red;
+        }
+
+        .severe-glitch-anim {
+            animation: severe-glitch 0.2s infinite;
+        }
+
+        @keyframes severe-glitch {
+            0% {
+                transform: translate(0, 0) skew(0deg);
+                opacity: 1;
+            }
+
+            20% {
+                transform: translate(-10px, 5px) skew(10deg);
+                opacity: 0.8;
+            }
+
+            40% {
+                transform: translate(10px, -5px) skew(-10deg);
+                opacity: 1;
+            }
+
+            60% {
+                transform: translate(-5px, 10px) skew(5deg);
+                opacity: 0.9;
+            }
+
+            80% {
+                transform: translate(5px, -10px) skew(-5deg);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translate(0, 0) skew(0deg);
+                opacity: 1;
+            }
+        }
+
+        /* Digital Particles */
+        .digital-particle {
+            position: absolute;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            font-size: 0.8rem;
+            color: #0ff;
+            pointer-events: none;
+            z-index: 10001;
+            user-select: none;
+            text-shadow: 0 0 5px cyan;
+            animation: float-up-fade 1.5s ease-out forwards;
+        }
+
+        @keyframes float-up-fade {
+            0% {
+                transform: translateY(0) scale(1);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(-50px) scale(1.5);
+                opacity: 0;
+            }
+        }
+
+        /* Power Bar in HUD */
+        .power-bar-container {
+            width: 150px;
+            height: 10px;
+            border: 1px solid rgba(0, 255, 255, 0.5);
+            background: rgba(0, 0, 0, 0.5);
+            margin-top: 5px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .power-bar-fill {
+            height: 100%;
+            width: 50%;
+            background: linear-gradient(90deg, transparent, #0ff, transparent);
+            background-size: 200% 100%;
+            animation: power-pulse 2s infinite linear;
+            box-shadow: 0 0 10px cyan;
+            transition: width 0.2s ease-out;
+        }
+
+        @keyframes power-pulse {
+            0% {
+                background-position: 100% 0;
+            }
+
+            100% {
+                background-position: -100% 0;
+            }
         }
     </style>
 </head>
 
 <body>
 
-    <video id="bg-video" loop muted playsinline>
-        <source src="https://www.pexels.com/download/video/856668/" type="video/mp4">
+    <video id="bg-media" loop muted playsinline>
+        <source src="https://r2.guns.lol/11173a4c-5c66-4bbe-ac8f-e2641bdabcd3.mp4" type="video/mp4">
     </video>
 
-    <div id="scanlines"></div>
     <canvas id="canvas-overlay"></canvas>
 
     <audio id="bg-music" loop>
-        <source src="https://r2.guns.lol/ab805e91-a1ee-4f5d-ba08-9344dcc71c8a.mp3" type="audio/mp3">
+        <source src="https://audio.jukehost.co.uk/F6fHo9M8EAU3RZWAMUpE0yksLANnv4oS" type="audio/mp3">
     </audio>
 
     <div id="enter-overlay">
-        <div class="enter-text">❤</div>
+        <div class="enter-text">System Offline. Click to Initialize.</div>
     </div>
 
-    <div id="card-container">
-        <div id="profile-card">
+    <!-- Boot Sequence Overlay -->
+    <div id="boot-overlay">
+        <div id="term-content"></div>
+    </div>
 
-            <div class="avatar-container">
-                <img src="https://i.pinimg.com/736x/1a/40/b4/1a40b4fc0ef563409ecedbbb85c051bc.jpg" alt="Avatar"
-                    class="avatar">
-            </div>
+    <!-- System Warning Overlay -->
+    <div class="system-warning-overlay" id="sys-warning">
+        <div class="warning-text">SYSTEM FAILURE</div>
+    </div>
 
-            <div class="username">❦</div>
-            <div class="uid">UID: -22</div>
+    <!-- CRT Scanlines -->
+    <div class="scanlines"></div>
 
-            <div class="badges-wrapper">
-
-                <div class="badge" data-tooltip="Developer">
-                    <img src="https://cdn.discordapp.com/emojis/1446726487163142204.webp?size=128">
-                    <path
-                        d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z" />
-                    </svg>
-                </div>
-                <div class="badge" data-tooltip="Staff">
-                    <img src="https://cdn.discordapp.com/emojis/1446726503877443624.webp?size=128">
-                    <path
-                        d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 6c1.4 0 2.8 1.1 2.8 2.5V11c.6 0 1.2.6 1.2 1.2v3.5c0 .6-.6 1.2-1.2 1.2H9.2c-.6 0-1.2-.6-1.2-1.2v-3.5c0-.6.6-1.2 1.2-1.2V9.5C9.2 8.1 10.6 7 12 7zm0 1c-.8 0-1.5.7-1.5 1.5V11h3V9.5c0-.8-.7-1.5-1.5-1.5z" />
-                    </svg>
-                </div>
-                <div class="badge" data-tooltip="OG">
-                    <img src="https://cdn.discordapp.com/emojis/1446729322365845645.webp?size=128">
-                    <path
-                        d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11h-14zm14 2c0 1.1-.9 2-2 2H7c-1.1 0-2-.9-2-2v-1h14v1z" />
-                    </svg>
-                </div>
-                <div class="badge" data-tooltip="Premium">
-                    <img src="https://cdn.discordapp.com/emojis/1446726556792918157.webp?size=128">
-                    <path
-                        d="M12.01 2.03L22 7.55v4.52l-9.99 9.9-9.99-9.9V7.55l9.99-5.52M12 4.4L4.5 8.5v3.13L12 19.1l7.5-7.47V8.5L12 4.4z" />
-                    </svg>
-                </div>
-                <div class="badge" data-tooltip="Verified">
-                    <img src="https://cdn.discordapp.com/emojis/1446725850061078640.webp?size=128">
-                    <path
-                        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
-                    </svg>
-                </div>
-                <div class="badge" data-tooltip="Server Booster">
-                    <img src="https://cdn.discordapp.com/emojis/1291131549131079732.webp?size=128">
-                    <path d="M15.4 12.6L12 2l-3.4 10.6-9.6 1.6 8 5.6L5.4 22l6.6-3.8 6.6 3.8-1.6-9.8 8-5.6-9.6-1.6z" />
-                    </svg>
-                </div>
-                <div class="badge" data-tooltip="For IE">
-                    <img src="https://cdn.discordapp.com/attachments/1448701736679116954/1451614465161171046/IMG_7703.jpg?ex=6946d0d2&is=69457f52&hm=388759f5d77f024c9eba88f7912594c23a35a22361885e14135c6338cef323b8&"
-                        alt="icon">
-                    </svg>
-                </div>
-
-                <div class="badge" data-tooltip="NO RICH">
-                    <img src="https://cdn.discordapp.com/emojis/1158064956512665771.webp?size=128" alt="icon">
-                    </svg>
-                </div>
-                <div class="badge" data-tooltip="LONGST AND BIGST D1CK">
-                    <img src="https://cdn.discordapp.com/emojis/1158063893898330162.webp?size=128" alt="icon">
-                    </svg>
-                </div>
-
-                <div class="badge" data-tooltip="⁂">
-                    <img src="https://cdn.discordapp.com/emojis/1399038179192864768.webp?size=128&animated=true"
-                        alt="icon">
-                    </svg>
-                </div>
-
-                <div class="badge" data-tooltip="$">
-                    <img src="https://cdn.discordapp.com/emojis/820419076014735380.webp?size=128&animated=true"
-                        alt="icon">
-                    </svg>
-                </div>
-
-                <div class="badge" data-tooltip="✡">
-                    <img src="https://cdn.discordapp.com/emojis/1146444541717659688.webp?size=128" alt="icon">
-                    </svg>
-                </div>
-
-                <div class="badge" data-tooltip="✡">
-                    <img src="https://cdn.discordapp.com/emojis/1146444541717659688.webp?size=128" alt="icon">
-                    </svg>
-                </div>
-
-                <div class="badge" data-tooltip="✡">
-                    <img src="https://cdn.discordapp.com/emojis/1146444541717659688.webp?size=128" alt="icon">
-                    </svg>
-                </div>
-
-                <div class="badge" data-tooltip="✡">
-                    <img src="https://cdn.discordapp.com/emojis/1146444541717659688.webp?size=128" alt="icon">
-                    </svg>
-                </div>
-
-                <div class="badge" data-tooltip="✡">
-                    <img src="https://cdn.discordapp.com/emojis/1146444541717659688.webp?size=128" alt="icon">
-                    </svg>
-                </div>
-
-                <div class="badge" data-tooltip="✡">
-                    <img src="https://cdn.discordapp.com/emojis/1146444541717659688.webp?size=128" alt="icon">
-                    </svg>
-                </div>
-
-                <div class="badge" data-tooltip="✡">
-                    <img src="https://cdn.discordapp.com/emojis/1146444541717659688.webp?size=128" alt="icon">
-                    </svg>
-                </div>
-
-                <div class="badge" data-tooltip="✡">
-                    <img src="https://cdn.discordapp.com/emojis/1146444541717659688.webp?size=128" alt="icon">
-                    </svg>
-                </div>
-
-                <div class="badge" data-tooltip="✡">
-                    <img src="https://cdn.discordapp.com/emojis/1146444541717659688.webp?size=128" alt="icon">
-                    </svg>
-                </div>
-
-                <div class="badge" data-tooltip="✡">
-                    <img src="https://cdn.discordapp.com/emojis/1146444541717659688.webp?size=128" alt="icon">
-                    </svg>
-                </div>
-
-                <div class="badge" data-tooltip="✡">
-                    <img src="https://cdn.discordapp.com/emojis/1146444541717659688.webp?size=128" alt="icon">
-                    </svg>
-                </div>
-
-                <div class="badge" data-tooltip="✡">
-                    <img src="https://cdn.discordapp.com/emojis/1146444541717659688.webp?size=128" alt="icon">
-                    </svg>
-                </div>
-
-                <div class="badge" data-tooltip="✡">
-                    <img src="https://cdn.discordapp.com/emojis/1146444541717659688.webp?size=128" alt="icon">
-                    </svg>
-                </div>
-
-                <div class="badge" data-tooltip="✡">
-                    <img src="https://cdn.discordapp.com/emojis/1146444541717659688.webp?size=128" alt="icon">
-                    </svg>
-                </div>
-
-                <div class="badge" data-tooltip="✡">
-                    <img src="https://cdn.discordapp.com/emojis/1146444541717659688.webp?size=128" alt="icon">
-                    </svg>
-                </div>
-
-                <div class="badge" data-tooltip="✡">
-                    <img src="https://cdn.discordapp.com/emojis/1146444541717659688.webp?size=128" alt="icon">
-                    </svg>
-                </div>
-
-                <div class="badge" data-tooltip="✡">
-                    <img src="https://cdn.discordapp.com/emojis/1146444541717659688.webp?size=128" alt="icon">
-                    </svg>
-                </div>
-
-                <div class="badge" data-tooltip="✡">
-                    <img src="https://cdn.discordapp.com/emojis/1146444541717659688.webp?size=128" alt="icon">
-                    </svg>
-                </div>
-
-            </div>
-
-            <div class="bio-box">
-                <span id="typewriter"></span><span class="cursor">|</span>
-            </div>
-
-            <a href="https://discord.gg/FDq7Tu7UCf" target="_blank" class="discord-widget">
-                <div class="discord-icon">
-                    <img src="https://i.pinimg.com/736x/af/f1/34/aff1344d223066e7a908b3cb60e16d36.jpg" alt="Icon">
-                </div>
-                <div class="discord-info">
-                    <span class="discord-name">Join ZyNuk3Bot</span>
-                    <div class="discord-status">
-                        <div class="status-item">
-                            <span class="status-dot"></span>
-                            <span id="online-count">Fetching...</span>
-                        </div>
-                        <div class="status-item">
-                            <span class="status-dot gray" style="margin-left: 8px;"></span>
-                            <span id="total-count">...</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="join-btn">Join</div>
-            </a>
-
-            <div class="social-grid">
-                <a href="https://youtube.com/@Y4n9x1" target="_blank" class="social-btn" title="YouTube"><i
-                        class="fab fa-youtube"></i></a>
-                <a href="https://github.com/Yyyyy222222" target="_blank" class="social-btn" title="GitHub"><i
-                        class="fab fa-github"></i></a>
-                <a href="https://steamcommunity.com/id/IFromTaiwan/" target="_blank" class="social-btn" title="Steam"><i
-                        class="fab fa-steam"></i></a>
-
-                <a href="https://www.roblox.com/users/1948875534/profile" target="_blank" class="social-btn"
-                    title="Roblox">
-                    <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"
-                        fill="rgba(255,255,255,0.7)">
-                        <path
-                            d="M18.926 23.998L0 18.892L5.315 0.002L24.241 5.108L18.926 23.998ZM10.461 12.162L15.908 13.63L14.376 18.974L8.929 17.506L10.461 12.162Z" />
-                    </svg>
-                </a>
-
-                <a href="https://www.tiktok.com/@_13ie" target="_blank" class="social-btn" title="TikTok"><i
-                        class="fab fa-tiktok"></i></a>
-                <a href="https://open.spotify.com/user/31d4v5r3ghfqgzqr3ghaylrpvrey" target="_blank" class="social-btn"
-                    title="Spotify"><i class="fab fa-spotify"></i></a>
-            </div>
-
-            <div class="volume-control">
-                <i class="fas fa-volume-down"></i>
-                <input type="range" id="vol-slider" min="0" max="100" value="40">
-                <i class="fas fa-volume-up"></i>
-            </div>
-
-            <div class="footer">
-                <span><i class="fas fa-eye"></i> 69,114,514</span>
-                <span><i class="fas fa-copyright"></i> 2025-2125</span>
+    <!-- HUD Overlay -->
+    <div class="hud-container">
+        <div class="scan-line"></div>
+        <div class="hud-item hud-tl">
+            <span class="hud-line">SYS.ONLINE</span>
+            <span class="hud-line">TGT: USER</span>
+            <span class="hud-line">SEC: LOW</span>
+        </div>
+        <div class="hud-item hud-tr">
+            <span class="hud-line">CPU: <span id="cpu-val">34</span>%</span>
+            <span class="hud-line">RAM: <span id="ram-val">12</span>%</span>
+            <span class="hud-line">NET: CON</span>
+        </div>
+        <div class="hud-item hud-bl">
+            <span class="hud-line">LOC: UNKNOWN</span>
+            <span class="hud-line">BIO: LOADED</span>
+        </div>
+        <div class="hud-item hud-br">
+            <span class="hud-line">VER: 2.0.77</span>
+            <span class="hud-line">ID: #0592</span>
+            <span class="hud-line">PWR:</span>
+            <div class="power-bar-container">
+                <div class="power-bar-fill" id="power-fill"></div>
             </div>
         </div>
     </div>
 
+    <div id="main-card">
+        <div class="avatar-container">
+            <div class="magic-ring ring-1"></div>
+            <div class="magic-ring ring-2"></div>
+            <div class="magic-ring ring-3"></div>
+            <div class="magic-ring ring-4"></div>
+            <img src="https://i.pinimg.com/474x/0f/73/8e/0f738ec9db6c97916df1982962b085a6.jpg" alt="Profile"
+                class="avatar">
+        </div>
+
+        <div class="username glitch" data-text="Lighting Moon">Lighting Moon</div>
+
+        <div class="badges">
+            <i class="fas fa-crown" title="Premium"></i>
+            <i class="fas fa-code" title="Developer"></i>
+            <i class="fas fa-terminal" title="Hacker"></i>
+            <i class="fas fa-check-circle" title="Verified"></i>
+        </div>
+        <div class="uid">UID: 1</div>
+
+        <div class="bio-box">
+            <span id="typewriter"></span><span class="cursor">|</span>
+        </div>
+
+        <div class="links">
+            <a href="https://discord.gg/VvcdzzXX" target="_blank" class="link-item">
+                <i class="fab fa-discord"></i> Discord Server
+            </a>
+            <a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=RDdQw4w9WgXcQ&start_radio=1&pp=ygUXbmV2ZXIgZ29ubmEgZ2l2ZSB5b3UgdXCgBwE%3D"
+                target="_blank" class="link-item">
+                <i class="fab fa-youtube"></i> YouTube Channel
+            </a>
+            <a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=RDdQw4w9WgXcQ&start_radio=1&pp=ygUXbmV2ZXIgZ29ubmEgZ2l2ZSB5b3UgdXCgBwE%3D"
+                target="_blank" class="link-item">
+                <i class="fab fa-github"></i> GitHub Profile
+            </a>
+        </div>
+
+        <div class="footer">
+            <span><i class="fas fa-eye"></i> 14,203</span>
+            <span><i class="fas fa-copyright"></i> 2024</span>
+        </div>
+
+        <div class="visualizer-container">
+            <div class="viz-bar"></div>
+            <div class="viz-bar"></div>
+            <div class="viz-bar"></div>
+            <div class="viz-bar"></div>
+            <div class="viz-bar"></div>
+            <div class="viz-bar"></div>
+            <div class="viz-bar"></div>
+            <div class="viz-bar"></div>
+            <div class="viz-bar"></div>
+            <div class="viz-bar"></div>
+            <div class="viz-bar"></div>
+            <div class="viz-bar"></div>
+            <div class="viz-bar"></div>
+            <div class="viz-bar"></div>
+            <div class="viz-bar"></div>
+        </div>
+    </div>
+
     <script>
-        // --- 設定 (保持原本內容) ---
-        const pageTitle = " !E Xun | Welcome | ";
-        const bioText = ["Developer", "FromTaiwan", "❤", "love you", "✡"];
-        const discordInviteCode = "FDq7Tu7UCf";
+        // --- 設定區 ---
+        // --- 設定區 ---
+        const pageTitle = "Lighting Moon | System Online | ";
+        const bioText = ["Developer.", "Gamer.", "Sleepy.", "Welcome to my profile."];
+        const typingSpeed = 50;
+        const deleteSpeed = 30;
+        const pauseTime = 2000;
+
+        // Boot Log Data
+        const bootLog = [
+            "Initializing kernel...",
+            "Loading system modules...",
+            "Connecting to neural network...",
+            "[SUCCESS] Network secured.",
+            "Bypassing firewalls...",
+            "Accessing user profile database...",
+            "Decrypting bio data...",
+            "rendering graphics engine...",
+            "SYSTEM ONLINE."
+        ];
 
         // --- 變數 ---
         let titleIndex = 0;
         const enterOverlay = document.getElementById('enter-overlay');
-        const cardContainer = document.getElementById('card-container');
-        const profileCard = document.getElementById('profile-card');
-        const bgVideo = document.getElementById('bg-video');
+        const mainCard = document.getElementById('main-card');
+        const bgMedia = document.getElementById('bg-media');
         const bgMusic = document.getElementById('bg-music');
-        const volSlider = document.getElementById('vol-slider');
         const typewriterSpan = document.getElementById('typewriter');
 
-        // Discord 計數器元件
-        const onlineCountSpan = document.getElementById('online-count');
-        const totalCountSpan = document.getElementById('total-count');
-
-        // --- 1. 點擊進入 ---
-        enterOverlay.addEventListener('click', () => {
-            enterOverlay.style.opacity = '0';
-            enterOverlay.style.visibility = 'hidden';
-
-            cardContainer.style.visibility = 'visible';
-            cardContainer.style.opacity = '1';
-
-            bgVideo.play();
-            bgMusic.volume = volSlider.value / 100;
-            bgMusic.play().catch(e => console.log("Audio error:", e));
-
-            initTypewriter();
-            setInterval(scrollTitle, 200);
-
-            // 抓取 Discord 資料
-            fetchDiscordStats();
-        });
-
-        // --- 2. 獲取 Discord 詳細人數 (Online & Total) ---
-        async function fetchDiscordStats() {
-            try {
-                const response = await fetch(`https://discord.com/api/v9/invites/${discordInviteCode}?with_counts=true`);
-                const data = await response.json();
-
-                if (data.approximate_presence_count) {
-                    // 格式化數字
-                    const online = new Intl.NumberFormat('en-US').format(data.approximate_presence_count);
-                    const total = new Intl.NumberFormat('en-US').format(data.approximate_member_count);
-
-                    onlineCountSpan.innerText = `${online} Online`;
-                    totalCountSpan.innerText = `${total} Members`;
-                } else {
-                    onlineCountSpan.innerText = "N/A Online";
-                    totalCountSpan.innerText = "";
+        // --- TextScramble Class (Moved for scope) ---
+        class TextScramble {
+            constructor(el) {
+                this.el = el;
+                this.chars = '!<>-_\\/[]{}—=+*^?#________';
+                this.update = this.update.bind(this);
+            }
+            setText(newText) {
+                const oldText = this.el.innerText;
+                const length = Math.max(oldText.length, newText.length);
+                const promise = new Promise((resolve) => this.resolve = resolve);
+                this.queue = [];
+                for (let i = 0; i < length; i++) {
+                    const from = oldText[i] || '';
+                    const to = newText[i] || '';
+                    const start = Math.floor(Math.random() * 40);
+                    const end = start + Math.floor(Math.random() * 40);
+                    this.queue.push({ from, to, start, end });
                 }
-            } catch (error) {
-                console.error("Discord Fetch Error:", error);
-                onlineCountSpan.innerText = "1,337 Online";
-                totalCountSpan.innerText = "9,999 Members";
+                cancelAnimationFrame(this.frameRequest);
+                this.frame = 0;
+                this.update();
+                return promise;
+            }
+            update() {
+                let output = '';
+                let complete = 0;
+                for (let i = 0, n = this.queue.length; i < n; i++) {
+                    let { from, to, start, end, char } = this.queue[i];
+                    if (this.frame >= end) {
+                        complete++;
+                        output += to;
+                    } else if (this.frame >= start) {
+                        if (!char || Math.random() < 0.28) {
+                            char = this.randomChar();
+                            this.queue[i].char = char;
+                        }
+                        output += `<span class="scramble-highlight">${char}</span>`;
+                    } else {
+                        output += from;
+                    }
+                }
+                this.el.innerHTML = output;
+                if (complete === this.queue.length) {
+                    this.resolve();
+                } else {
+                    this.frameRequest = requestAnimationFrame(this.update);
+                    this.frame++;
+                }
+            }
+            randomChar() {
+                return this.chars[Math.floor(Math.random() * this.chars.length)];
             }
         }
 
-        // --- 3. 3D 視差懸浮效果 ---
-        document.addEventListener('mousemove', (e) => {
-            if (window.innerWidth < 768) return;
+        // --- 1. 點擊進入邏輯 ---
 
-            const x = (window.innerWidth / 2 - e.pageX) / 20;
-            const y = (window.innerHeight / 2 - e.pageY) / 20;
+        enterOverlay.addEventListener('click', () => {
+            // 1. Play Music immediately
+            bgMusic.volume = 0.4;
+            bgMusic.play().catch(e => console.log("Audio play failed:", e));
 
-            const rotateX = Math.max(-15, Math.min(15, y));
-            const rotateY = Math.max(-15, Math.min(15, -x));
+            // 2. Hide Enter Overlay
+            enterOverlay.style.opacity = '0';
+            setTimeout(() => { enterOverlay.style.display = 'none'; }, 800);
 
-            profileCard.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+            // 3. Start Boot Sequence
+            runBootSequence();
         });
 
-        document.addEventListener('mouseleave', () => {
-            profileCard.style.transform = `rotateX(0deg) rotateY(0deg)`;
-        });
+        function runBootSequence() {
+            const bootOverlay = document.getElementById('boot-overlay');
+            const termContent = document.getElementById('term-content');
+            bootOverlay.style.display = 'block';
 
-        // --- 4. 標題滾動 ---
+            let lineIndex = 0;
+
+            function printLine() {
+                if (lineIndex < bootLog.length) {
+                    const div = document.createElement('div');
+                    div.className = 'terminal-line';
+                    div.innerText = `> ${bootLog[lineIndex]}`;
+                    termContent.appendChild(div);
+
+                    // Specific sound effect could go here
+
+                    lineIndex++;
+                    // Random delay for realism
+                    setTimeout(printLine, Math.random() * 300 + 100);
+                } else {
+                    // Boot Complete
+                    setTimeout(() => {
+                        // Flash effect or fade out
+                        bootOverlay.style.transition = 'opacity 0.5s ease';
+                        bootOverlay.style.opacity = '0';
+                        setTimeout(() => { bootOverlay.style.display = 'none'; }, 500);
+
+                        // Show Main Card
+                        showMainCard();
+                    }, 800);
+                }
+            }
+            printLine();
+        }
+
+        function showMainCard() {
+            // Show Card
+            mainCard.style.opacity = '1';
+            mainCard.style.visibility = 'visible';
+            // Scale and rotate reset happens in CSS or updated via JS tilt
+
+            bgMedia.play();
+
+            // Init interactions
+            animateElements();
+            initParallax();
+            initBioScramble();
+            setInterval(scrollTitle, 200);
+
+            // Enable 3D Tilt
+            document.addEventListener('mousemove', handleCardTilt);
+        }
+
+        // --- 3D Card Tilt ---
+        function handleCardTilt(e) {
+            const xAxis = (window.innerWidth / 2 - e.pageX) / 25;
+            const yAxis = (window.innerHeight / 2 - e.pageY) / 25;
+            // Rotate the card
+            mainCard.style.transform = `translate(-50%, -50%) rotateY(${xAxis}deg) rotateX(${yAxis}deg)`;
+        }
+
+        // --- 2. 標題滾動特效 ---
         function scrollTitle() {
             document.title = pageTitle.substring(titleIndex) + pageTitle.substring(0, titleIndex);
             titleIndex = (titleIndex + 1) % pageTitle.length;
         }
 
-        // --- 5. 音量控制 ---
-        volSlider.addEventListener('input', (e) => {
-            bgMusic.volume = e.target.value / 100;
-        });
-
-        // --- 6. 打字機 ---
-        let textIndex = 0;
-        let charIndex = 0;
-        let isDeleting = false;
-        const typingSpeed = 100;
-        const deleteSpeed = 50;
-        const pauseTime = 1500;
-
-        function initTypewriter() {
-            const currentText = bioText[textIndex];
-
-            if (isDeleting) {
-                typewriterSpan.textContent = currentText.substring(0, charIndex - 1);
-                charIndex--;
-            } else {
-                typewriterSpan.textContent = currentText.substring(0, charIndex + 1);
-                charIndex++;
-            }
-
-            let typeSpeedCurrent = isDeleting ? deleteSpeed : typingSpeed;
-
-            if (!isDeleting && charIndex === currentText.length) {
-                typeSpeedCurrent = pauseTime;
-                isDeleting = true;
-            } else if (isDeleting && charIndex === 0) {
-                isDeleting = false;
-                textIndex = (textIndex + 1) % bioText.length;
-                typeSpeedCurrent = 500;
-            }
-
-            setTimeout(initTypewriter, typeSpeedCurrent);
+        // --- 3. Bio Scramble Effect ---
+        function initBioScramble() {
+            const el = document.getElementById('typewriter');
+            const fx = new TextScramble(el);
+            let counter = 0;
+            const next = () => {
+                fx.setText(bioText[counter]).then(() => {
+                    setTimeout(next, 2500);
+                });
+                counter = (counter + 1) % bioText.length;
+            };
+            next();
         }
 
-        // --- 7. 背景粒子 ---
+        // 按钮点击粒子效果 & Magic Circle
+        document.addEventListener('click', (e) => {
+            // Create Magic Ring
+            const ring = document.createElement('div');
+            ring.className = 'click-magic-ring';
+            ring.style.left = e.clientX + 'px';
+            ring.style.top = e.clientY + 'px';
+            document.body.appendChild(ring);
+
+            // Cleanup ring
+            setTimeout(() => {
+                if (ring.parentNode) ring.parentNode.removeChild(ring);
+            }, 800);
+
+            // Create Sparkles
+            for (let i = 0; i < 15; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = e.clientX + 'px';
+                particle.style.top = e.clientY + 'px';
+
+                // Varied shapes
+                const shapeType = Math.random();
+                if (shapeType > 0.6) {
+                    particle.style.borderRadius = '0%'; // Square
+                    particle.style.transform = `rotate(${Math.random() * 360}deg)`;
+                } else if (shapeType > 0.3) {
+                    particle.style.height = '2px'; // Line
+                    particle.style.width = '10px';
+                }
+
+                particle.style.background = `hsl(${Math.random() * 60 + 180}, 100%, 70%)`;
+                particle.style.boxShadow = `0 0 10px ${particle.style.background}`;
+
+                particle.style.setProperty('--tx', `${Math.random() * 200 - 100}px`);
+                particle.style.setProperty('--ty', `${Math.random() * 200 - 100}px`);
+                document.body.appendChild(particle);
+
+                setTimeout(() => {
+                    if (particle.parentNode) particle.parentNode.removeChild(particle);
+                }, 1000);
+            }
+
+            // Digital Text Particles
+            const particleTexts = ["CRIT", "HIT", "0xFA", "ERR", "NULL", "1011"];
+            for (let i = 0; i < 3; i++) {
+                const dt = document.createElement('div');
+                dt.className = 'digital-particle';
+                dt.innerText = particleTexts[Math.floor(Math.random() * particleTexts.length)];
+                dt.style.left = (e.clientX + Math.random() * 40 - 20) + 'px';
+                dt.style.top = (e.clientY + Math.random() * 40 - 20) + 'px';
+                document.body.appendChild(dt);
+
+                setTimeout(() => {
+                    if (dt.parentNode) dt.parentNode.removeChild(dt);
+                }, 1500);
+            }
+
+            // Randomly Trigger System Warning on Click (Low Chance)
+            if (Math.random() > 0.9) {
+                triggerSystemWarning();
+            }
+        });
+
+        // --- 4. 粒子特效 (Matrix Rain Code) ---
         const canvas = document.getElementById('canvas-overlay');
         const ctx = canvas.getContext('2d');
-        let particles = [];
 
         function resizeCanvas() {
             canvas.width = window.innerWidth;
@@ -821,45 +1265,216 @@
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
-        class Particle {
-            constructor() {
-                this.x = Math.random() * canvas.width;
-                this.y = Math.random() * canvas.height;
-                this.size = Math.random() * 1.5;
-                this.speedY = Math.random() * 0.5 + 0.2;
-                this.speedX = (Math.random() - 0.5) * 0.3;
-                this.opacity = Math.random() * 0.5 + 0.2;
-            }
-            update() {
-                this.y += this.speedY;
-                this.x += this.speedX;
-                if (this.y > canvas.height) this.y = 0;
-                if (this.x > canvas.width) this.x = 0;
-                if (this.x < 0) this.x = canvas.width;
-            }
-            draw() {
-                ctx.fillStyle = `rgba(255, 255, 255, ${this.opacity})`;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fill();
-            }
+        const katakana = 'アァカサタナハマヤャラワガザダバパイィキシチニヒミリヰギジヂビピウゥクスツヌフムユュルグズブヅプ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        const fontSize = 14;
+        const columns = Math.floor(window.innerWidth / fontSize);
+        const drops = []; // y positions
+
+        for (let x = 0; x < columns; x++) {
+            drops[x] = Math.random() * -100; // Randomize start
         }
 
-        function initParticles() {
-            for (let i = 0; i < 80; i++) particles.push(new Particle());
-        }
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)'; // Fade effect
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        function animateParticles() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            for (let i = 0; i < particles.length; i++) {
-                particles[i].update();
-                particles[i].draw();
+            ctx.fillStyle = '#0F0'; // Green text
+            ctx.font = fontSize + 'px monospace';
+
+            for (let i = 0; i < drops.length; i++) {
+                const text = katakana.charAt(Math.floor(Math.random() * katakana.length));
+                // Random color for extra style
+                if (Math.random() > 0.95) ctx.fillStyle = '#FFF';
+                else if (Math.random() > 0.9) ctx.fillStyle = '#0FF';
+                else ctx.fillStyle = '#0F0';
+
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975)
+                    drops[i] = 0;
+
+                drops[i]++;
             }
-            requestAnimationFrame(animateParticles);
+            requestAnimationFrame(drawMatrix);
         }
 
-        initParticles();
-        animateParticles();
+        drawMatrix();
+
+        // --- 5. 游標拖尾特效 ---
+        const cursorTrails = [];
+        const maxTrails = 20;
+
+        // 页面元素入场动画
+        function animateElements() {
+            const elements = [
+                document.querySelector('.avatar'),
+                document.querySelector('.username'),
+                document.querySelector('.badges'),
+                document.querySelector('.uid'),
+                document.querySelector('.bio-box'),
+                ...document.querySelectorAll('.link-item')
+            ];
+
+            elements.forEach((el, i) => {
+                if (el) {
+                    el.style.opacity = 0;
+                    el.style.transform = 'translateY(20px)';
+                    setTimeout(() => {
+                        el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                        el.style.opacity = 1;
+                        el.style.transform = 'translateY(0)';
+                    }, 100 * i);
+                }
+            });
+        }
+
+        // 背景视差效果
+        function initParallax() {
+            window.addEventListener('scroll', () => {
+                const scrollY = window.scrollY;
+                bgMedia.style.transform = `translateY(${scrollY * 0.3}px)`;
+            });
+        }
+
+
+
+        // --- Custom Cursor Ring Logic ---
+        const cursorRing = document.createElement('div');
+        cursorRing.className = 'cursor-ring';
+        document.body.appendChild(cursorRing);
+
+        document.addEventListener('mousemove', (e) => {
+            // Update Cursor Ring Position with slight delay? 
+            // For performance, just direct update
+            cursorRing.style.left = e.clientX + 'px';
+            cursorRing.style.top = e.clientY + 'px';
+
+            // Trail Logic
+            const trail = document.createElement('div');
+            trail.className = 'cursor-trail';
+            trail.style.left = e.pageX + 'px';
+            trail.style.top = e.pageY + 'px';
+            document.body.appendChild(trail);
+
+            cursorTrails.push({
+                element: trail,
+                alpha: 1.0
+            });
+
+            if (cursorTrails.length > maxTrails) {
+                const old = cursorTrails.shift();
+                if (old.element.parentNode) old.element.parentNode.removeChild(old.element);
+            }
+        });
+
+        document.addEventListener('mousedown', () => {
+            cursorRing.classList.add('active');
+        });
+        document.addEventListener('mouseup', () => {
+            cursorRing.classList.remove('active');
+        });
+
+        // Loop to animate fade out
+        function animateTrails() {
+            for (let i = 0; i < cursorTrails.length; i++) {
+                const item = cursorTrails[i];
+                item.alpha -= 0.05;
+                item.element.style.opacity = item.alpha;
+                item.element.style.transform = `scale(${item.alpha})`;
+            }
+            // Remove invisible
+            while (cursorTrails.length > 0 && cursorTrails[0].alpha <= 0) {
+                const old = cursorTrails.shift();
+                if (old.element.parentNode) old.element.parentNode.removeChild(old.element);
+            }
+            requestAnimationFrame(animateTrails);
+        }
+        animateTrails();
+
+
+
+        // Apply Scramble to Links
+        document.querySelectorAll('.link-item').forEach(link => {
+            const originalText = link.innerText.trim();
+            const scrambler = new TextScramble(link);
+
+            // fix: icon is inside, we need to handle text node separately or just scramble the whole thing carefully
+            // Actually, simplest is to wrap the text in a span or just handle it. 
+            // Better approach for this structure: Scramble only on hover enter, reset on leave.
+            // But since links have icons, let's just target the text nodes or wrap text.
+            // Simplified: Just scramble a specific span if possible, or just the whole text content relative to the icon?
+            // Let's wrap the text part in a span for safety first in a separate snippet, or just hack it here.
+
+            // Re-approach: The links have <i class="..."></i> Text. 
+            // We should wrap the text in a span to scramble ONLY the text.
+            const icon = link.querySelector('i');
+            const textNode = Array.from(link.childNodes).find(node => node.nodeType === Node.TEXT_NODE && node.textContent.trim().length > 0);
+
+            if (textNode) {
+                const span = document.createElement('span');
+                span.textContent = textNode.textContent;
+                link.replaceChild(span, textNode);
+
+                const fx = new TextScramble(span);
+
+                // Trigger scramble on hover enter
+                link.addEventListener('mouseenter', () => {
+                    fx.setText(span.textContent);
+                });
+
+                // Optional: Scramble back or clean up? 
+                // Currently just scrambles to the same text, which produces the decoding effect.
+            }
+        });
+
+        // --- 7. HUD Value Updates ---
+        const cpuVal = document.getElementById('cpu-val');
+        const ramVal = document.getElementById('ram-val');
+
+        setInterval(() => {
+            if (cpuVal) cpuVal.innerText = Math.floor(Math.random() * 30) + 20;
+            if (ramVal) ramVal.innerText = Math.floor(Math.random() * 20) + 10;
+        }, 2000);
+
+        // Power Bar Logic
+        const powerFill = document.getElementById('power-fill');
+        setInterval(() => {
+            if (powerFill) {
+                const level = Math.random() * 80 + 20; // 20% to 100%
+                powerFill.style.width = level + '%';
+                // Color change based on level
+                if (level > 80) powerFill.style.background = 'linear-gradient(90deg, transparent, #ff0055, transparent)';
+                else powerFill.style.background = 'linear-gradient(90deg, transparent, #0ff, transparent)';
+            }
+        }, 300);
+
+        // System Warning Logic
+        const warningOverlay = document.getElementById('sys-warning');
+        const warningText = warningOverlay.querySelector('.warning-text');
+
+        function triggerSystemWarning() {
+            warningOverlay.style.opacity = '1';
+            warningText.style.opacity = '1';
+            warningText.classList.add('severe-glitch-anim');
+            document.body.classList.add('severe-glitch-anim');
+
+            // Audio effect simulation here if needed
+
+            setTimeout(() => {
+                warningOverlay.style.opacity = '0';
+                warningText.style.opacity = '0';
+                warningText.classList.remove('severe-glitch-anim');
+                document.body.classList.remove('severe-glitch-anim');
+            }, 800);
+        }
+
+        // Randomly trigger warning occasionally
+        setInterval(() => {
+            if (Math.random() > 0.98) { // rare
+                triggerSystemWarning();
+            }
+        }, 10000);
+
     </script>
 </body>
 
